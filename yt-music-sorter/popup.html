@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>YTMusic AI Sorter</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap');
+
+    :root {
+      --bg: #0a0a0f;
+      --surface: #13131a;
+      --surface2: #1c1c28;
+      --border: #2a2a3d;
+      --accent: #ff3d6e;
+      --accent2: #7c3aed;
+      --text: #f0f0f8;
+      --muted: #6b6b8a;
+      --success: #10b981;
+      --warning: #f59e0b;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      width: 420px;
+      min-height: 560px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      overflow-x: hidden;
+    }
+
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, #13131a 0%, #1a0a2e 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 18px 20px 14px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .header::before {
+      content: '';
+      position: absolute;
+      top: -30px; right: -30px;
+      width: 120px; height: 120px;
+      background: radial-gradient(circle, rgba(124,58,237,0.3) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .header-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo-icon {
+      width: 32px; height: 32px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+    }
+
+    .logo-text {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 15px;
+      letter-spacing: -0.3px;
+    }
+
+    .logo-text span { color: var(--accent); }
+
+    .status-pill {
+      font-size: 10px;
+      padding: 3px 8px;
+      border-radius: 20px;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+    }
+
+    .status-pill.ready { background: rgba(16,185,129,0.15); color: var(--success); border: 1px solid rgba(16,185,129,0.3); }
+    .status-pill.loading { background: rgba(245,158,11,0.15); color: var(--warning); border: 1px solid rgba(245,158,11,0.3); }
+    .status-pill.error { background: rgba(255,61,110,0.15); color: var(--accent); border: 1px solid rgba(255,61,110,0.3); }
+
+    .header-sub {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    /* API Key Section */
+    .api-section {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .section-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .api-input {
+      flex: 1;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .api-input:focus { border-color: var(--accent2); }
+    .api-input::placeholder { color: var(--muted); }
+
+    .btn-sm {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .btn-sm:hover { border-color: var(--accent2); color: var(--accent2); }
+
+    /* Songs Panel */
+    .songs-panel {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border: none;
+      color: white;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: 'Syne', sans-serif;
+      font-weight: 600;
+      font-size: 12px;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+
+    .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn-primary:active { transform: translateY(0); }
+    .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+    .songs-count {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .songs-count strong { color: var(--text); }
+
+    .songs-preview {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      max-height: 130px;
+      overflow-y: auto;
+    }
+
+    .songs-preview::-webkit-scrollbar { width: 4px; }
+    .songs-preview::-webkit-scrollbar-track { background: transparent; }
+    .songs-preview::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .song-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+      transition: background 0.15s;
+    }
+
+    .song-item:last-child { border-bottom: none; }
+    .song-item:hover { background: var(--surface2); }
+
+    .song-thumb {
+      width: 32px; height: 32px;
+      border-radius: 4px;
+      background: var(--surface2);
+      object-fit: cover;
+      flex-shrink: 0;
+    }
+
+    .song-thumb-placeholder {
+      width: 32px; height: 32px;
+      border-radius: 4px;
+      background: linear-gradient(135deg, var(--surface2), var(--border));
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px;
+    }
+
+    .song-info { flex: 1; min-width: 0; }
+
+    .song-title {
+      font-size: 11px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .song-artist {
+      font-size: 10px;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .empty-state {
+      padding: 24px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.6;
+    }
+
+    /* AI Sort Section */
+    .sort-section {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .sort-options {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+
+    .sort-chip {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 5px 10px;
+      border-radius: 20px;
+      font-size: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .sort-chip:hover,
+    .sort-chip.active {
+      border-color: var(--accent2);
+      color: var(--accent2);
+      background: rgba(124,58,237,0.1);
+    }
+
+    .custom-prompt {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      outline: none;
+      resize: none;
+      height: 52px;
+      transition: border-color 0.2s;
+      margin-bottom: 10px;
+    }
+
+    .custom-prompt:focus { border-color: var(--accent2); }
+    .custom-prompt::placeholder { color: var(--muted); }
+
+    /* Results */
+    .results-section {
+      padding: 14px 20px;
+    }
+
+    .playlist-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 8px;
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+
+    .playlist-card:hover { border-color: var(--accent2); }
+
+    .playlist-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      cursor: pointer;
+    }
+
+    .playlist-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .playlist-emoji { font-size: 16px; }
+
+    .playlist-name {
+      font-family: 'Syne', sans-serif;
+      font-weight: 600;
+      font-size: 13px;
+    }
+
+    .playlist-count {
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 1px;
+    }
+
+    .playlist-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .create-btn {
+      background: rgba(16,185,129,0.1);
+      border: 1px solid rgba(16,185,129,0.3);
+      color: var(--success);
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .create-btn:hover { background: rgba(16,185,129,0.2); }
+    .create-btn.created { background: rgba(16,185,129,0.3); cursor: default; }
+
+    .chevron {
+      color: var(--muted);
+      font-size: 12px;
+      transition: transform 0.2s;
+    }
+
+    .chevron.open { transform: rotate(180deg); }
+
+    .playlist-songs {
+      display: none;
+      border-top: 1px solid var(--border);
+      max-height: 120px;
+      overflow-y: auto;
+    }
+
+    .playlist-songs.open { display: block; }
+    .playlist-songs::-webkit-scrollbar { width: 4px; }
+    .playlist-songs::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .pl-song {
+      padding: 6px 12px 6px 38px;
+      font-size: 10px;
+      color: var(--muted);
+      border-bottom: 1px solid rgba(42,42,61,0.5);
+    }
+
+    .pl-song:last-child { border-bottom: none; }
+    .pl-song strong { color: var(--text); }
+
+    /* Progress */
+    .progress-bar-wrap {
+      height: 3px;
+      background: var(--border);
+      border-radius: 2px;
+      margin-top: 8px;
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      border-radius: 2px;
+      transition: width 0.4s ease;
+      width: 0%;
+    }
+
+    .log-line {
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 6px;
+      min-height: 14px;
+    }
+
+    .log-line.success { color: var(--success); }
+    .log-line.error { color: var(--accent); }
+
+    /* Scrollable body */
+    .scroll-body {
+      max-height: 380px;
+      overflow-y: auto;
+    }
+
+    .scroll-body::-webkit-scrollbar { width: 4px; }
+    .scroll-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .divider {
+      height: 1px;
+      background: var(--border);
+    }
+
+    .note-box {
+      margin: 10px 0 0;
+      padding: 8px 10px;
+      background: rgba(245,158,11,0.08);
+      border: 1px solid rgba(245,158,11,0.25);
+      border-radius: 6px;
+      font-size: 10px;
+      color: var(--warning);
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="header-top">
+      <div class="logo">
+        <div class="logo-icon">🎵</div>
+        <div class="logo-text">YTMusic <span>AI</span> Sorter</div>
+      </div>
+      <div class="status-pill ready" id="statusPill">READY</div>
+    </div>
+    <div class="header-sub">Sort your liked songs into smart playlists</div>
+  </div>
+
+  <div class="scroll-body">
+
+    <!-- API Key -->
+    <div class="api-section">
+      <div class="section-label">Claude API Key</div>
+      <div class="input-row">
+        <input class="api-input" type="password" id="apiKeyInput" placeholder="sk-ant-..." />
+        <button class="btn-sm" id="saveKeyBtn">Save</button>
+      </div>
+    </div>
+
+    <!-- Fetch Songs -->
+    <div class="songs-panel">
+      <div class="panel-header">
+        <div>
+          <div class="section-label">Liked Songs</div>
+          <div class="songs-count" id="songsCount">No songs loaded</div>
+        </div>
+        <button class="btn-primary" id="fetchBtn">Fetch Songs</button>
+      </div>
+
+      <div class="songs-preview" id="songsPreview">
+        <div class="empty-state">
+          Open YouTube Music Liked Songs page,<br/>then click "Fetch Songs"
+        </div>
+      </div>
+
+      <div class="note-box" id="fetchNote" style="display:none">
+        ⚠️ Navigate to <strong>music.youtube.com/playlist?list=LM</strong> and scroll to load all songs before fetching.
+      </div>
+    </div>
+
+    <!-- Sort Options -->
+    <div class="sort-section">
+      <div class="section-label">Sort By</div>
+      <div class="sort-options" id="sortChips">
+        <div class="sort-chip active" data-mode="genre">🎸 Genre</div>
+        <div class="sort-chip" data-mode="mood">😊 Mood</div>
+        <div class="sort-chip" data-mode="decade">📅 Decade</div>
+        <div class="sort-chip" data-mode="energy">⚡ Energy</div>
+        <div class="sort-chip" data-mode="language">🌍 Language</div>
+        <div class="sort-chip" data-mode="custom">✏️ Custom</div>
+      </div>
+
+      <textarea class="custom-prompt" id="customPrompt" placeholder="Describe your sorting logic... e.g. 'Sort by BPM into Slow / Medium / Fast, and group by whether it's good for working out'"></textarea>
+
+      <div style="display:flex; gap:8px; align-items:center">
+        <button class="btn-primary" id="sortBtn" disabled style="flex:1">✨ Sort with AI</button>
+      </div>
+
+      <div class="progress-bar-wrap" id="progressWrap" style="display:none">
+        <div class="progress-bar" id="progressBar"></div>
+      </div>
+      <div class="log-line" id="logLine"></div>
+    </div>
+
+    <!-- Results -->
+    <div class="results-section" id="resultsSection" style="display:none">
+      <div class="section-label">Generated Playlists</div>
+      <div id="playlistsContainer"></div>
+    </div>
+
+  </div>
+
+  <script src="src/popup.js"></script>
+</body>
+</html>
