@@ -23,11 +23,12 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      width: 420px;
-      min-height: 560px;
+      width: 480px;
+      min-height: 580px;
       background: var(--bg);
       color: var(--text);
       font-family: 'DM Mono', monospace;
+      font-size: 14px;
       overflow-x: hidden;
     }
 
@@ -73,15 +74,15 @@
     .logo-text {
       font-family: 'Syne', sans-serif;
       font-weight: 800;
-      font-size: 15px;
+      font-size: 18px;
       letter-spacing: -0.3px;
     }
 
     .logo-text span { color: var(--accent); }
 
     .status-pill {
-      font-size: 10px;
-      padding: 3px 8px;
+      font-size: 12px;
+      padding: 4px 10px;
       border-radius: 20px;
       font-weight: 500;
       letter-spacing: 0.5px;
@@ -92,7 +93,7 @@
     .status-pill.error { background: rgba(255,61,110,0.15); color: var(--accent); border: 1px solid rgba(255,61,110,0.3); }
 
     .header-sub {
-      font-size: 11px;
+      font-size: 13px;
       color: var(--muted);
     }
 
@@ -103,7 +104,7 @@
     }
 
     .section-label {
-      font-size: 10px;
+      font-size: 12px;
       text-transform: uppercase;
       letter-spacing: 1px;
       color: var(--muted);
@@ -121,10 +122,10 @@
       background: var(--surface2);
       border: 1px solid var(--border);
       color: var(--text);
-      padding: 8px 12px;
+      padding: 10px 12px;
       border-radius: 6px;
       font-family: 'DM Mono', monospace;
-      font-size: 11px;
+      font-size: 13px;
       outline: none;
       transition: border-color 0.2s;
     }
@@ -136,11 +137,11 @@
       background: var(--surface2);
       border: 1px solid var(--border);
       color: var(--text);
-      padding: 8px 12px;
+      padding: 10px 14px;
       border-radius: 6px;
       cursor: pointer;
       font-family: 'DM Mono', monospace;
-      font-size: 11px;
+      font-size: 13px;
       transition: all 0.2s;
       white-space: nowrap;
     }
@@ -164,12 +165,12 @@
       background: linear-gradient(135deg, var(--accent), var(--accent2));
       border: none;
       color: white;
-      padding: 8px 16px;
+      padding: 10px 18px;
       border-radius: 6px;
       cursor: pointer;
       font-family: 'Syne', sans-serif;
       font-weight: 600;
-      font-size: 12px;
+      font-size: 14px;
       transition: opacity 0.2s, transform 0.1s;
     }
 
@@ -178,7 +179,7 @@
     .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
 
     .songs-count {
-      font-size: 11px;
+      font-size: 13px;
       color: var(--muted);
     }
 
@@ -188,7 +189,7 @@
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 8px;
-      max-height: 130px;
+      max-height: 150px;
       overflow-y: auto;
     }
 
@@ -228,7 +229,7 @@
     .song-info { flex: 1; min-width: 0; }
 
     .song-title {
-      font-size: 11px;
+      font-size: 13px;
       font-weight: 500;
       white-space: nowrap;
       overflow: hidden;
@@ -236,7 +237,7 @@
     }
 
     .song-artist {
-      font-size: 10px;
+      font-size: 12px;
       color: var(--muted);
       white-space: nowrap;
       overflow: hidden;
@@ -247,7 +248,7 @@
       padding: 24px;
       text-align: center;
       color: var(--muted);
-      font-size: 11px;
+      font-size: 13px;
       line-height: 1.6;
     }
 
@@ -268,9 +269,9 @@
       background: var(--surface2);
       border: 1px solid var(--border);
       color: var(--muted);
-      padding: 5px 10px;
+      padding: 6px 12px;
       border-radius: 20px;
-      font-size: 10px;
+      font-size: 12px;
       cursor: pointer;
       transition: all 0.2s;
     }
@@ -287,13 +288,13 @@
       background: var(--surface2);
       border: 1px solid var(--border);
       color: var(--text);
-      padding: 8px 12px;
+      padding: 10px 12px;
       border-radius: 6px;
       font-family: 'DM Mono', monospace;
-      font-size: 11px;
+      font-size: 13px;
       outline: none;
       resize: none;
-      height: 52px;
+      height: 58px;
       transition: border-color 0.2s;
       margin-bottom: 10px;
     }
@@ -336,11 +337,11 @@
     .playlist-name {
       font-family: 'Syne', sans-serif;
       font-weight: 600;
-      font-size: 13px;
+      font-size: 15px;
     }
 
     .playlist-count {
-      font-size: 10px;
+      font-size: 12px;
       color: var(--muted);
       margin-top: 1px;
     }
@@ -355,10 +356,10 @@
       background: rgba(16,185,129,0.1);
       border: 1px solid rgba(16,185,129,0.3);
       color: var(--success);
-      padding: 4px 10px;
+      padding: 5px 12px;
       border-radius: 4px;
       font-family: 'DM Mono', monospace;
-      font-size: 10px;
+      font-size: 12px;
       cursor: pointer;
       transition: all 0.2s;
     }
@@ -386,8 +387,8 @@
     .playlist-songs::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
     .pl-song {
-      padding: 6px 12px 6px 38px;
-      font-size: 10px;
+      padding: 7px 12px 7px 38px;
+      font-size: 12px;
       color: var(--muted);
       border-bottom: 1px solid rgba(42,42,61,0.5);
     }
@@ -413,10 +414,10 @@
     }
 
     .log-line {
-      font-size: 10px;
+      font-size: 12px;
       color: var(--muted);
       margin-top: 6px;
-      min-height: 14px;
+      min-height: 16px;
     }
 
     .log-line.success { color: var(--success); }
@@ -424,7 +425,7 @@
 
     /* Scrollable body */
     .scroll-body {
-      max-height: 380px;
+      max-height: 420px;
       overflow-y: auto;
     }
 
@@ -438,14 +439,102 @@
 
     .note-box {
       margin: 10px 0 0;
-      padding: 8px 10px;
+      padding: 10px 12px;
       background: rgba(245,158,11,0.08);
       border: 1px solid rgba(245,158,11,0.25);
       border-radius: 6px;
-      font-size: 10px;
+      font-size: 12px;
       color: var(--warning);
-      line-height: 1.5;
+      line-height: 1.6;
     }
+    /* Model Toggle */
+    .model-toggle {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 12px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 4px;
+    }
+
+    .model-tab {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px 10px;
+      border-radius: 6px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      color: var(--muted);
+      transition: all 0.2s;
+      user-select: none;
+    }
+
+    .model-tab.active {
+      background: var(--surface);
+      color: var(--text);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+    }
+
+    .model-tab:hover:not(.active) { color: var(--text); }
+
+    .model-badge {
+      font-family: 'DM Mono', monospace;
+      font-size: 9px;
+      font-weight: 500;
+      padding: 2px 6px;
+      border-radius: 10px;
+      letter-spacing: 0.3px;
+    }
+
+    .model-badge.best {
+      background: rgba(124,58,237,0.2);
+      color: #a78bfa;
+      border: 1px solid rgba(124,58,237,0.3);
+    }
+
+    .model-badge.free {
+      background: rgba(16,185,129,0.15);
+      color: var(--success);
+      border: 1px solid rgba(16,185,129,0.3);
+    }
+
+    .key-block { }
+
+    .key-hint {
+      margin-top: 6px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .key-hint a {
+      color: var(--accent2);
+      text-decoration: none;
+    }
+
+    .key-hint a:hover { text-decoration: underline; }
+
+    .model-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 5px;
+    }
+
+    .model-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--accent2);
+    }
+
+    .model-dot.gemini { background: #34a853; }
   </style>
 </head>
 <body>
@@ -463,12 +552,38 @@
 
   <div class="scroll-body">
 
-    <!-- API Key -->
+    <!-- AI Model Selector -->
     <div class="api-section">
-      <div class="section-label">Claude API Key</div>
-      <div class="input-row">
-        <input class="api-input" type="password" id="apiKeyInput" placeholder="sk-ant-..." />
-        <button class="btn-sm" id="saveKeyBtn">Save</button>
+      <div class="section-label">AI Model</div>
+
+      <!-- Toggle -->
+      <div class="model-toggle" id="modelToggle">
+        <div class="model-tab active" data-model="claude">
+          <span>🤖</span> Claude
+          <span class="model-badge best">Best</span>
+        </div>
+        <div class="model-tab" data-model="gemini">
+          <span>✨</span> Gemini
+          <span class="model-badge free">Free</span>
+        </div>
+      </div>
+
+      <!-- Claude Key -->
+      <div class="key-block" id="claudeBlock">
+        <div class="input-row">
+          <input class="api-input" type="password" id="claudeKeyInput" placeholder="sk-ant-api03-..." />
+          <button class="btn-sm" id="saveClaudeBtn">Save</button>
+        </div>
+        <div class="key-hint">Get a key at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a></div>
+      </div>
+
+      <!-- Gemini Key -->
+      <div class="key-block" id="geminiBlock" style="display:none">
+        <div class="input-row">
+          <input class="api-input" type="password" id="geminiKeyInput" placeholder="AIza..." />
+          <button class="btn-sm" id="saveGeminiBtn">Save</button>
+        </div>
+        <div class="key-hint">Get a free key at <a href="https://aistudio.google.com/app/apikey" target="_blank">aistudio.google.com</a> — 1500 req/day free</div>
       </div>
     </div>
 
@@ -479,17 +594,17 @@
           <div class="section-label">Liked Songs</div>
           <div class="songs-count" id="songsCount">No songs loaded</div>
         </div>
-        <button class="btn-primary" id="fetchBtn">Fetch Songs</button>
+        <button class="btn-primary" id="fetchBtn">Fetch All Songs</button>
       </div>
 
       <div class="songs-preview" id="songsPreview">
         <div class="empty-state">
-          Open YouTube Music Liked Songs page,<br/>then click "Fetch Songs"
+          Open <strong>music.youtube.com/playlist?list=LM</strong><br/>then click "Fetch All Songs" — it will auto-scroll for you
         </div>
       </div>
 
       <div class="note-box" id="fetchNote" style="display:none">
-        ⚠️ Navigate to <strong>music.youtube.com/playlist?list=LM</strong> and scroll to load all songs before fetching.
+        💡 Songs loaded from your Liked playlist. Click "Fetch All Songs" again to refresh.
       </div>
     </div>
 
@@ -507,8 +622,12 @@
 
       <textarea class="custom-prompt" id="customPrompt" placeholder="Describe your sorting logic... e.g. 'Sort by BPM into Slow / Medium / Fast, and group by whether it's good for working out'"></textarea>
 
-      <div style="display:flex; gap:8px; align-items:center">
+      <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap">
         <button class="btn-primary" id="sortBtn" disabled style="flex:1">✨ Sort with AI</button>
+        <div class="model-indicator" id="modelIndicator">
+          <div class="model-dot" id="modelDot"></div>
+          <span id="modelIndicatorText">Claude</span>
+        </div>
       </div>
 
       <div class="progress-bar-wrap" id="progressWrap" style="display:none">
