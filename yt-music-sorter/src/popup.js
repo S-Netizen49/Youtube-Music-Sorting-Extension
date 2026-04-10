@@ -7,6 +7,7 @@ let songs = [];
 let playlists = {};
 let sortMode = 'genre';
 let activeModel = 'claude'; // 'claude' | 'gemini'
+const MAX_SONGS = 20;
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
@@ -47,6 +48,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   $('saveGeminiBtn').addEventListener('click', saveGeminiKey);
   $('fetchBtn').addEventListener('click', fetchSongs);
   $('sortBtn').addEventListener('click', sortSongs);
+
+  const { lastPlaylists } = await chrome.storage.local.get(['lastPlaylists']);
+
+  if (lastPlaylists && lastPlaylists.length) {
+    playlists = lastPlaylists;
+    renderPlaylists(playlists);
+    $('resultsSection').style.display = 'block';
+  }
 });
 
 // ─── Model Switch ─────────────────────────────────────────────────────────────
@@ -155,25 +164,33 @@ async function autoScrollAndScrape() {
   const items = [];
   const seen = new Set();
 
-  document.querySelectorAll('ytmusic-responsive-list-item-renderer').forEach(row => {
+  for (const row of document.querySelectorAll('ytmusic-responsive-list-item-renderer')) {
+    if (items.length >= 20) break;
+  
     try {
       const titleEl = row.querySelector('yt-formatted-string.title, .title, [title].title, .primary-text yt-formatted-string');
       const title = titleEl?.textContent?.trim() || titleEl?.getAttribute('title');
+  
       const artistEl = row.querySelector('.secondary-flex-columns yt-formatted-string:first-child, .flex-columns .secondary-text, yt-formatted-string.byline');
       const artist = artistEl?.textContent?.trim();
+  
       const albumEl = row.querySelector('.secondary-flex-columns yt-formatted-string:nth-child(2)');
       const album = albumEl?.textContent?.trim();
+  
       const img = row.querySelector('img');
       const thumb = img?.src || '';
+  
       const link = row.querySelector('a[href*="watch?v="]');
       const videoId = link?.href?.match(/v=([^&]+)/)?.[1] || '';
+  
       const key = `${title}|||${artist}`;
+  
       if (title && artist && !seen.has(key)) {
         seen.add(key);
         items.push({ title, artist, album: album || '', thumb, videoId });
       }
     } catch (_) {}
-  });
+  }
 
   window.scrollTo(0, 0);
   return items;
@@ -236,10 +253,18 @@ async function sortSongs() {
 
     let parsed;
     try {
-      const clean = rawText.replace(/```json|```/g, '').trim();
-      parsed = JSON.parse(clean);
-    } catch (_) {
-      throw new Error('AI returned invalid JSON. Try again.');
+      // Extract only JSON object from the response
+      const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+    
+      if (!jsonMatch) {
+        throw new Error("No JSON found in AI response");
+      }
+    
+      parsed = JSON.parse(jsonMatch[0]);
+    
+    } catch (e) {
+      console.log("RAW GEMINI OUTPUT:", rawText);
+      throw new Error("AI returned invalid JSON. Try again.");
     }
 
     playlists = parsed.playlists || [];
@@ -297,7 +322,7 @@ Respond with ONLY valid JSON, no markdown, no explanation:
 {"playlists":[{"name":"Playlist Name","emoji":"🎸","description":"Short description","songs":["Song Title - Artist"]}]}`;
 
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
