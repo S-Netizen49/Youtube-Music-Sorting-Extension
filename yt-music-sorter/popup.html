@@ -220,6 +220,28 @@
 
     .note-box { margin: 10px 0 0; padding: 10px 12px; background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.25); border-radius: 6px; font-size: 12px; color: var(--warning); line-height: 1.6; }
 
+    /* YouTube Auth */
+    .yt-auth-section { padding: 14px 20px; border-bottom: 1px solid var(--border); }
+    .yt-auth-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .yt-status { font-size: 12px; color: var(--muted); }
+    .yt-status.connected { color: var(--success); }
+    .yt-status.error { color: var(--accent); }
+    .btn-yt {
+      background: linear-gradient(135deg, #ff0000, #cc0000);
+      border: none; color: white; padding: 8px 14px; border-radius: 6px;
+      cursor: pointer; font-family: 'Syne', sans-serif; font-weight: 600;
+      font-size: 12px; transition: opacity 0.2s; white-space: nowrap;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .btn-yt:hover { opacity: 0.85; }
+    .btn-yt:disabled { opacity: 0.4; cursor: not-allowed; }
+    .client-id-hint { font-size: 11px; color: var(--muted); line-height: 1.5; }
+    .client-id-hint a { color: var(--accent2); text-decoration: none; }
+    .client-id-hint a:hover { text-decoration: underline; }
+    .create-btn.creating { background: rgba(245,158,11,0.1); border-color: rgba(245,158,11,0.3); color: var(--warning); cursor: not-allowed; }
+    .create-btn.created { background: rgba(16,185,129,0.2); border-color: rgba(16,185,129,0.4); color: var(--success); cursor: default; }
+    .create-btn.error { background: rgba(255,61,110,0.1); border-color: rgba(255,61,110,0.3); color: var(--accent); }
+
     .scroll-body { max-height: 440px; overflow-y: auto; }
     .scroll-body::-webkit-scrollbar { width: 4px; }
     .scroll-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
@@ -298,6 +320,23 @@
 
       <div class="note-box" id="fetchNote" style="display:none">
         💡 Songs loaded from your Liked playlist. Click "Fetch All Songs" again to refresh.
+      </div>
+    </div>
+
+    <!-- YouTube Auth -->
+    <div class="yt-auth-section">
+      <div class="section-label">YouTube Account</div>
+      <div class="yt-auth-row">
+        <button class="btn-yt" id="connectYTBtn">▶ Connect YouTube</button>
+        <span class="yt-status" id="ytStatus">Not connected</span>
+      </div>
+      <div class="client-id-hint" id="clientIdHint">
+        Needs an OAuth Client ID from <a href="https://console.cloud.google.com/apis/credentials" target="_blank">Google Cloud Console</a>.<br/>
+        Enable <strong>YouTube Data API v3</strong> → Create OAuth 2.0 Client ID → Chrome Extension.
+      </div>
+      <div class="input-row" style="margin-top:8px">
+        <input class="api-input" type="text" id="clientIdInput" placeholder="xxxx.apps.googleusercontent.com" />
+        <button class="btn-sm" id="saveClientIdBtn">Save</button>
       </div>
     </div>
 

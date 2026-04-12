@@ -7,6 +7,7 @@ let songs = [];
 let playlists = {};
 let sortMode = 'genre';
 let activeModel = 'gemini'; // 'gemini' | 'ollama'
+let ytToken = null; // YouTube OAuth token
 const MAX_SONGS = 10;
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
@@ -60,6 +61,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   $('fetchBtn').addEventListener('click', fetchSongs);
   $('sortBtn').addEventListener('click', sortSongs);
   $('testOllamaBtn').addEventListener('click', testOllama);
+  $('connectYTBtn').addEventListener('click', connectYouTube);
+  $('saveClientIdBtn').addEventListener('click', saveClientId);
+
+  // Restore YouTube connection state
+  const { ytClientId, ytAccessToken } = await chrome.storage.local.get(['ytClientId', 'ytAccessToken']);
+  if (ytClientId) $('clientIdInput').value = ytClientId;
+  if (ytAccessToken) {
+    ytToken = ytAccessToken;
+    setYTStatus('connected', '✓ Connected');
+  }
 });
 
 // ─── Model Switch ─────────────────────────────────────────────────────────────
@@ -270,48 +281,60 @@ async function sortSongs() {
   setProgress(5);
 
   const customText = $('customPrompt').value.trim();
-  // Limit songs sent to Ollama — CPU inference is slow, keep it short
-  const songSubset = activeModel === 'ollama' ? songs.slice(0, 10) : songs;
-  if (activeModel === 'ollama') log(`Sending ${songSubset.length} songs to Ollama (CPU mode)...`);
-  const prompt = buildPrompt(songSubset, sortMode, customText);
 
   try {
-    let rawText;
+    let plResult;
 
     if (activeModel === 'gemini') {
+      // ── Gemini flow ────────────────────────────────────────────────────────
       const { geminiKey } = await chrome.storage.local.get('geminiKey');
       if (!geminiKey) { log('Enter your Gemini API key first', 'error'); $('sortBtn').disabled = false; return; }
+
+      const prompt = buildPrompt(songs, sortMode, customText);
+      let rawText;
       try {
         rawText = await callGemini(geminiKey, prompt);
       } catch (geminiErr) {
         log(`Gemini failed (${geminiErr.message}) — falling back to Ollama...`, 'error');
         setProgress(10);
-        rawText = await callOllama(prompt);
+        // Ollama fallback uses reduced song set
+        const ollamaPrompt = buildPrompt(songs.slice(0, 10), sortMode, customText);
+        rawText = await callOllama(ollamaPrompt);
+        plResult = parseOllamaResponse(rawText);
+        // Skip gemini parsing below
+        playlists = plResult;
+        setProgress(100);
+        renderPlaylists(playlists);
+        log(`✓ Created ${playlists.length} playlists! (via Ollama fallback)`, 'success');
+        setStatus('DONE', 'ready');
+        await chrome.storage.local.set({ lastPlaylists: playlists });
+        $('sortBtn').disabled = false;
+        return;
       }
+
+      setProgress(80);
+      log('Parsing Gemini response...');
+      console.log('RAW LENGTH:', rawText.length);
+      plResult = parseGeminiResponse(rawText);
+
     } else {
-      rawText = await callOllama(prompt);
+      // ── Ollama flow ────────────────────────────────────────────────────────
+      // Limit to 10 songs — CPU inference is slow
+      const songSubset = songs.slice(0, 10);
+      log(`Sending ${songSubset.length} songs to Ollama (local CPU)...`);
+      const prompt = buildPrompt(songSubset, sortMode, customText);
+      const rawText = await callOllama(prompt);
+
+      setProgress(80);
+      log('Parsing Ollama response...');
+      plResult = parseOllamaResponse(rawText);
     }
 
-    setProgress(80);
-    log('Parsing results...');
-
-    let parsed;
-    try {
-      // Extract first JSON object — handles models that add extra text
-      const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) throw new Error('No JSON found in AI response');
-      parsed = JSON.parse(jsonMatch[0]);
-    } catch (e) {
-      console.log('RAW AI OUTPUT:', rawText);
-      throw new Error('AI returned invalid JSON. Try again.');
-    }
-
-    playlists = parsed.playlists || [];
+    playlists = plResult;
     setProgress(100);
     renderPlaylists(playlists);
     log(`✓ Created ${playlists.length} playlists!`, 'success');
     setStatus('DONE', 'ready');
-    // Persist playlists so they survive popup close/reopen
     await chrome.storage.local.set({ lastPlaylists: playlists });
 
   } catch (err) {
@@ -320,6 +343,81 @@ async function sortSongs() {
   }
 
   $('sortBtn').disabled = false;
+}
+
+// ─── Gemini JSON Parser ───────────────────────────────────────────────────────
+// Gemini reliably returns clean JSON — just strip markdown fences if present
+function parseGeminiResponse(rawText) {
+  try {
+    const clean = rawText.replace(/```json\s*|```/g, '').trim();
+    const parsed = JSON.parse(clean);
+    if (!parsed.playlists?.length) throw new Error('No playlists in response');
+    return parsed.playlists;
+  } catch (e) {
+    // Fallback: extract first { ... } block
+    const match = rawText.match(/\{[\s\S]*\}/);
+    if (!match) {
+      console.log('RAW GEMINI OUTPUT:', rawText);
+      throw new Error('Gemini returned invalid JSON. Try again.');
+    }
+    const parsed = JSON.parse(match[0]);
+    if (!parsed.playlists?.length) throw new Error('No playlists in Gemini response');
+    return parsed.playlists;
+  }
+}
+
+// ─── Ollama JSON Parser ───────────────────────────────────────────────────────
+// Ollama may truncate output or add extra text — needs repair logic
+function parseOllamaResponse(rawText) {
+  // Strip markdown fences and leading/trailing text
+  let jsonStr = rawText.replace(/```json\s*|```/g, '').trim();
+
+  // Find start of JSON object
+  const start = jsonStr.indexOf('{');
+  if (start === -1) {
+    console.log('RAW OLLAMA OUTPUT:', rawText);
+    throw new Error('Ollama returned no JSON. Try again.');
+  }
+
+  // Walk to find the matching closing brace
+  let depth = 0, end = -1;
+  for (let i = start; i < jsonStr.length; i++) {
+    if (jsonStr[i] === '{') depth++;
+    else if (jsonStr[i] === '}') { depth--; if (depth === 0) { end = i; break; } }
+  }
+
+  let candidate = end !== -1
+    ? jsonStr.slice(start, end + 1)
+    : jsonStr.slice(start); // truncated — take everything from start
+
+  // Try parsing as-is first
+  try {
+    const parsed = JSON.parse(candidate);
+    if (!parsed.playlists?.length) throw new Error('empty');
+    return parsed.playlists;
+  } catch (_) {}
+
+  // Repair truncated JSON:
+  // 1. Remove any trailing incomplete key or value after last full comma
+  candidate = candidate
+    .replace(/,\s*"[^"]*$/, '')   // cut incomplete key: ,"inco
+    .replace(/,\s*$/, '');         // cut trailing comma
+
+  // 2. Close any unclosed arrays and objects
+  const openBrackets = (candidate.match(/\[/g) || []).length - (candidate.match(/\]/g) || []).length;
+  const openBraces   = (candidate.match(/\{/g) || []).length - (candidate.match(/\}/g) || []).length;
+  candidate += ']'.repeat(Math.max(0, openBrackets)) + '}'.repeat(Math.max(0, openBraces));
+
+  try {
+    const parsed = JSON.parse(candidate);
+    if (!parsed.playlists?.length) throw new Error('empty after repair');
+    console.log(`Ollama JSON repaired — recovered ${parsed.playlists.length} playlists`);
+    return parsed.playlists;
+  } catch (e) {
+    console.log('RAW OLLAMA OUTPUT:', rawText);
+    console.log('REPAIR ATTEMPT:', candidate);
+    throw new Error('Ollama returned truncated JSON that could not be repaired. Try again with fewer songs.');
+  }
 }
 
 // ─── Gemini API ───────────────────────────────────────────────────────────────
@@ -339,7 +437,7 @@ Respond with ONLY valid JSON, no markdown, no explanation:
       body: JSON.stringify({
         system_instruction: { parts: [{ text: systemPrompt }] },
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.4, maxOutputTokens: 4000 }
+        generationConfig: { temperature: 0.4, maxOutputTokens: 15000 }
       })
     }
   );
@@ -402,7 +500,7 @@ Respond with ONLY valid JSON. No explanation, no markdown. Format:
       body: JSON.stringify({
         model,
         stream: false,
-        options: { temperature: 0.3, num_predict: 2048 }, // reduced for speed
+        options: { temperature: 0.1, num_predict: 4096 },
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user',   content: prompt }
@@ -497,15 +595,54 @@ function renderPlaylists(pls) {
 async function createPlaylist(idx) {
   const pl = playlists[idx];
   const btn = $(`createBtn${idx}`);
-  btn.textContent = '⏳'; btn.disabled = true;
 
+  // ── YouTube API path (fully automatic) ──────────────────────────────────
+  if (ytToken) {
+    btn.textContent = '⏳ Creating...';
+    btn.className = 'create-btn creating';
+    btn.disabled = true;
+
+    try {
+      // Match playlist songs back to their video IDs from the scraped songs
+      const videoIds = pl.songs.map(songStr => {
+        // songStr is "Title - Artist" — find matching song by title
+        const title = songStr.split(' - ')[0]?.trim().toLowerCase();
+        const match = songs.find(s => s.title.toLowerCase().includes(title) || title.includes(s.title.toLowerCase()));
+        return match?.videoId || null;
+      }).filter(Boolean);
+
+      const { playlistId, added, total } = await createYouTubePlaylist(
+        pl.emoji ? `${pl.emoji} ${pl.name}` : pl.name,
+        pl.description || '',
+        videoIds
+      );
+
+      btn.textContent = `✓ Created (${added}/${total} songs)`;
+      btn.className = 'create-btn created';
+      log(`✓ Playlist "${pl.name}" created on YouTube! ${added}/${total} songs added.`, 'success');
+
+      // Open the new playlist in YouTube Music
+      if (playlistId) {
+        chrome.tabs.create({ url: `https://music.youtube.com/playlist?list=${playlistId}` });
+      }
+
+    } catch (err) {
+      btn.textContent = '✗ Failed — retry';
+      btn.className = 'create-btn error';
+      btn.disabled = false;
+      log('Error: ' + err.message, 'error');
+    }
+    return;
+  }
+
+  // ── Fallback: manual instructions (no YouTube auth) ─────────────────────
+  btn.textContent = '⏳'; btn.disabled = true;
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (!tab.url.includes('music.youtube.com')) {
-      log('Open YouTube Music to create playlists', 'error');
+      log('Connect YouTube above for auto-creation, or open YT Music', 'error');
       btn.textContent = '+ Create'; btn.disabled = false; return;
     }
-    await chrome.storage.local.set({ pendingPlaylist: pl });
     await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       func: openCreatePlaylistDialog,
@@ -513,7 +650,7 @@ async function createPlaylist(idx) {
     });
     btn.textContent = '✓ Done';
     btn.classList.add('created');
-    log(`Playlist "${pl.name}" creation initiated`, 'success');
+    log(`Manual: follow the on-page instructions to create "${pl.name}"`, 'success');
   } catch (err) {
     log('Error: ' + err.message, 'error');
     btn.textContent = '+ Create'; btn.disabled = false;
@@ -545,6 +682,137 @@ function openCreatePlaylistDialog(playlistName, songs) {
     document.body.appendChild(n);
     setTimeout(() => n.remove(), 6000);
   }
+}
+
+// ─── YouTube Auth & API ──────────────────────────────────────────────────────
+
+async function saveClientId() {
+  const id = $('clientIdInput').value.trim();
+  if (!id.includes('.apps.googleusercontent.com')) {
+    log('Invalid Client ID format', 'error'); return;
+  }
+  await chrome.storage.local.set({ ytClientId: id });
+  log('Client ID saved ✓', 'success');
+}
+
+async function connectYouTube() {
+
+  const { ytClientId } = await chrome.storage.local.get('ytClientId');
+
+  if (!ytClientId) {
+
+    log('Save your OAuth Client ID first', 'error'); return;
+
+  }
+
+ 
+
+  setYTStatus('loading', '⏳ Connecting...');
+
+  $('connectYTBtn').disabled = true;
+
+ 
+
+  try {
+
+    const token = await new Promise((resolve, reject) => {
+
+      chrome.identity.getAuthToken({ interactive: true }, (token) => {
+
+        if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
+
+        else resolve(token);
+
+      });
+
+    });
+
+ 
+
+    ytToken = token;
+
+    await chrome.storage.local.set({ ytAccessToken: token });
+
+    setYTStatus('connected', '✓ Connected');
+
+    log('YouTube connected ✓', 'success');
+
+  } catch (err) {
+
+    setYTStatus('error', '✗ Failed');
+
+    console.error('FULL ERROR:', err);
+    log('YouTube auth failed: ' + err.message, 'error');
+  }
+
+ 
+
+  $('connectYTBtn').disabled = false;
+
+}
+
+
+function setYTStatus(state, text) {
+  const el = $('ytStatus');
+  el.textContent = text;
+  el.className = 'yt-status' + (state === 'connected' ? ' connected' : state === 'error' ? ' error' : '');
+  $('connectYTBtn').textContent = state === 'connected' ? '▶ Reconnect' : '▶ Connect YouTube';
+}
+
+async function createYouTubePlaylist(name, description, videoIds) {
+  // Step 1: Create the playlist
+  const createRes = await fetch('https://www.googleapis.com/youtube/v3/playlists?part=snippet,status', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${ytToken}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      snippet: { title: name, description: description || '' },
+      status: { privacyStatus: 'private' }
+    })
+  });
+
+  if (!createRes.ok) {
+    const err = await createRes.json();
+    // Token may be expired — clear it
+    if (createRes.status === 401) {
+      ytToken = null;
+      await chrome.storage.local.remove('ytAccessToken');
+      setYTStatus('error', '✗ Token expired');
+      throw new Error('YouTube token expired. Please reconnect.');
+    }
+    throw new Error(err.error?.message || `YouTube API error ${createRes.status}`);
+  }
+
+  const playlist = await createRes.json();
+  const playlistId = playlist.id;
+
+  // Step 2: Add each video to the playlist (sequential to avoid rate limits)
+  let added = 0;
+  for (const videoId of videoIds) {
+    if (!videoId) continue;
+    try {
+      const addRes = await fetch('https://www.googleapis.com/youtube/v3/playlistItems?part=snippet', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${ytToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          snippet: {
+            playlistId,
+            resourceId: { kind: 'youtube#video', videoId }
+          }
+        })
+      });
+      if (addRes.ok) added++;
+      // Small delay to avoid hitting rate limits
+      await new Promise(r => setTimeout(r, 100));
+    } catch (_) {}
+  }
+
+  return { playlistId, added, total: videoIds.length };
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

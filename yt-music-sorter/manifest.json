@@ -7,13 +7,22 @@
     "storage",
     "activeTab",
     "scripting",
-    "tabs"
+    "tabs",
+    "identity"
   ],
   "host_permissions": [
     "https://music.youtube.com/*",
     "https://www.youtube.com/*",
-    "https://generativelanguage.googleapis.com/*"
+    "https://generativelanguage.googleapis.com/*",
+    "https://www.googleapis.com/*",
+    "https://accounts.google.com/*"
   ],
+  "oauth2": {
+    "client_id": "661239575780-7t032hptr3jfduv62152crijdsbrvi64.apps.googleusercontent.com",
+    "scopes": [
+      "https://www.googleapis.com/auth/youtube"
+    ]
+  },
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
