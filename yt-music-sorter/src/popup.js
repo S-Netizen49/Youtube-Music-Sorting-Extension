@@ -8,7 +8,7 @@ let playlists = {};
 let sortMode = 'genre';
 let activeModel = 'gemini'; // 'gemini' | 'ollama'
 let ytToken = null; // YouTube OAuth token
-const MAX_SONGS = 10;
+const MAX_SONGS = 25;
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
@@ -235,8 +235,10 @@ async function autoScrollAndScrape(maxSongs) {
       const img = row.querySelector('img');
       const thumb = img?.src || '';
       const link = row.querySelector('a[href*="watch?v="]');
-      const videoId = link?.href?.match(/v=([^&]+)/)?.[1] || '';
-      const key = `${title}|||${artist}`;
+      const videoId = link?.href?.match(/v=([^&]+)/)?.[1];
+      if (!videoId) {
+        console.warn('Missing videoId for:', title, artist);
+      }      const key = `${title}|||${artist}`;
       if (title && artist && !seen.has(key)) {
         seen.add(key);
         items.push({ title, artist, album: album || '', thumb, videoId });
